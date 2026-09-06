@@ -1,0 +1,150 @@
+# ==================================================
+# Unreal Engine Project .gitignore
+# ==================================================
+
+# --------------------------------------------------
+# IDE / Editor Files
+# --------------------------------------------------
+
+# Visual Studio user specific files
+.vs/
+
+# Visual Studio Code
+.vscode/
+
+# JetBrains Rider
+.idea/
+
+# Generated project files
+*.sln
+*.suo
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.opendb
+.vsconfig
+
+# Xcode generated files
+*.xcodeproj
+*.xcworkspace
+
+
+# --------------------------------------------------
+# Compiled Files
+# --------------------------------------------------
+
+# Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled headers
+*.gch
+*.pch
+
+# Static libraries
+*.a
+*.lib
+*.lai
+*.la
+
+# Dynamic libraries
+*.dll
+*.so
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.ipa
+
+# Debug symbols
+*.pdb
+
+
+# --------------------------------------------------
+# Unreal Engine Generated Files
+# --------------------------------------------------
+
+# Compiled binaries
+Binaries/
+Plugins/**/Binaries/
+
+# Intermediate build files
+Intermediate/
+Plugins/**/Intermediate/
+
+# Saved editor data
+Saved/
+
+# Derived data cache
+DerivedDataCache/
+
+# Build output
+Build/*
+
+# Allow Build configuration files
+!Build/*/
+!Build/**/*.ico
+
+# Allow Pak blacklist files
+!Build/*/PakBlacklist*.txt
+
+
+# --------------------------------------------------
+# Unreal Generated Assets
+# --------------------------------------------------
+
+# Built lighting/navigation data
+*_BuiltData.uasset
+
+# Autosave files
+*_AUTOSAVE.*
+
+# Crash reports
+CrashReportClient/
+
+# Local logs
+*.log
+
+
+# --------------------------------------------------
+# Unreal Source Art
+# --------------------------------------------------
+
+# Large source assets not intended for repository
+SourceArt/**/*.png
+SourceArt/**/*.tga
+
+
+# --------------------------------------------------
+# Plugin Generated Data
+# --------------------------------------------------
+
+Plugins/**/Saved/
+Plugins/**/Intermediate/
+Plugins/**/Binaries/
+
+
+# --------------------------------------------------
+# Operating System Files
+# --------------------------------------------------
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# macOS
+.DS_Store
+
+
+# --------------------------------------------------
+# Temporary Files
+# --------------------------------------------------
+
+*.tmp
+*.temp
+*.bak
+*.swp
