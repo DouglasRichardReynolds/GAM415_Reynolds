@@ -8,6 +8,7 @@
 
 class USphereComponent;
 class UProjectileMovementComponent;
+class UNiagaraSystem;
 
 UCLASS(config=Game)
 class AGAM415_ReynoldsProjectile : public AActor
@@ -36,6 +37,9 @@ class AGAM415_ReynoldsProjectile : public AActor
 
 	UPROPERTY()
 		UMaterialInstanceDynamic* dmiMat;
+
+	UPROPERTY(EditAnywhere)
+		UNiagaraSystem* colorP;
 
 // Moved timing to right as the projectile is spawned to allow us access to decal variables
 public:

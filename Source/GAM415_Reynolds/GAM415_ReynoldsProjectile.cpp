@@ -6,6 +6,8 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Components/DecalComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
 
 AGAM415_ReynoldsProjectile::AGAM415_ReynoldsProjectile() 
 {
@@ -68,6 +70,16 @@ void AGAM415_ReynoldsProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* Oth
 	// If we hit something
 	if (OtherActor != nullptr)
 	{
+		// if colorP exists
+		if (colorP)
+		{
+			// Providing logic for spawn location, giving effect a name for use in UE, culling ball on collision, removing collision from particles
+			UNiagaraComponent* particleComp = UNiagaraFunctionLibrary::SpawnSystemAttached(colorP, HitComp, NAME_None, FVector(-20.f, 0.f, 0.f), FRotator(0.f), EAttachLocation::KeepRelativeOffset, true);
+			particleComp->SetNiagaraVariableLinearColor(FString("RandomColor"), randColor);
+			ballMesh->DestroyComponent();
+			CollisionComp->BodyInstance.SetCollisionProfileName("NoCollision");
+		}
+
 		// Picking random frame
 		float frameNum = UKismetMathLibrary::RandomFloatInRange(0.f, 3.f);
 
