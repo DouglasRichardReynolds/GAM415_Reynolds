@@ -8,6 +8,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
+#include "PerlinProcTerrain.h"
 
 AGAM415_ReynoldsProjectile::AGAM415_ReynoldsProjectile() 
 {
@@ -92,5 +93,12 @@ void AGAM415_ReynoldsProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* Oth
 		MatInstance->SetVectorParameterValue("Color", randColor);
 		MatInstance->SetScalarParameterValue("Frame", frameNum);
 
+		APerlinProcTerrain* procTerrain = Cast<APerlinProcTerrain>(OtherActor);
+
+		if (procTerrain)
+		{
+			// allows us to dig out terrain
+			procTerrain->AlterMesh(Hit.ImpactPoint);
+		}
 	}
 }
