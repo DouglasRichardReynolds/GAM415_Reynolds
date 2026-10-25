@@ -62,16 +62,14 @@ void APortal::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherA
 		if (OtherPortal)
 		{
 
-			// Find the player's position relative to the portal.
-			FVector LocalPlayerPosition =
-				GetActorTransform().InverseTransformPosition(
-					playerChar->GetActorLocation()
+			// find the player's position relative to the portal.
+			FVector LocalPlayerPosition = GetActorTransform().InverseTransformPosition(playerChar->GetActorLocation()
 				);
 
-			// Determine which face of the portal was entered.
+			// determine which face of the portal was entered.
 			bool bEnteredFront = LocalPlayerPosition.X >= 0.0f;
 
-			// Display the detected entrance side for testing.
+			// display the detected entrance side for testing.
 			if (GEngine)
 			{
 				GEngine->AddOnScreenDebugMessage(
@@ -91,49 +89,89 @@ void APortal::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherA
 				// we are now teleporting, get other portal's location, move playerChar to stored location
 				playerChar->isTeleporting = true;
 
-
-
-				// Get the destination portal's position and forward direction.
+				// get the destination portal's position and forward direction.
 				FVector PortalLocation = OtherPortal->GetActorLocation();
 				FVector PortalForward = OtherPortal->GetActorForwardVector();
 
-				// Choose the exit direction based on the entrance side.
+				// choose the exit direction based on the entrance side.
 				// BACK retains the previously working negative direction.
 				// FRONT exits through the positive direction.
 				FVector ExitDirection = bEnteredFront
 					? PortalForward
 					: -PortalForward;
 
-				// Place the player outside the destination portal.
-				FVector ExitLocation =
-					PortalLocation + (ExitDirection * 200.0f);
+				// place the player outside the destination portal.
+				FVector ExitLocation = PortalLocation + (ExitDirection * 200.0f);
 
-				// Face the player away from the destination portal.
-				FRotator ExitRotation = ExitDirection.Rotation();
+				// face the player along the floor portal's placement direction.
+				FVector FacingDirection = ExitDirection;
 
-				// Teleport the player and update their orientation.
+				if (FMath::Abs(ExitDirection.Z) > 0.9f)
+				{
+					FacingDirection = -OtherPortal->GetActorUpVector();
+
+					if (!bEnteredFront)
+					{
+						FacingDirection *= -1.0f;
+					}
+				}
+
+				// keep the player's view horizontal after teleporting.
+				FacingDirection.Z = 0.0f;
+				FacingDirection.Normalize();
+
+				FRotator ExitRotation = FacingDirection.Rotation();
+				ExitRotation.Pitch = 0.0f;
+				ExitRotation.Roll = 0.0f;
+
+
+				// rotate the player and their camera to face horizontally.
+				playerChar->SetActorRotation(ExitRotation);
+
+				if (AController* PlayerController = playerChar->GetController())
+				{
+					PlayerController->SetControlRotation(ExitRotation);
+				}
+
+				// teleport the player and update their orientation.
 				playerChar->SetActorLocation(ExitLocation);
 				playerChar->SetActorRotation(ExitRotation);
 
-				// Update the first-person camera direction.
+				// update the first-person camera direction.
 				if (AController* PlayerController = playerChar->GetController())
 				{
 					PlayerController->SetControlRotation(ExitRotation);
 				}
 
 
-				// Update the controller rotation so the camera faces
-				// the same direction as the character.
+				// update the controller rotation so the camera faces the same direction as the character.
 				if (AController* PlayerController = playerChar->GetController())
 				{
 					PlayerController->SetControlRotation(ExitRotation);
 				}
 
-				// wait 1 second, then change isTeleporting to false
+				// reset teleportation independently of the portal actor.
+				TWeakObjectPtr<AGAM415_ReynoldsCharacter> WeakPlayer = playerChar;
+
 				FTimerHandle TimerHandle;
-				FTimerDelegate TimerDelegate;
-				TimerDelegate.BindUFunction(this, "SetBool", playerChar);
-				GetWorld()->GetTimerManager().SetTimer(TimerHandle, TimerDelegate, 1, false);
+
+				FTimerDelegate TimerDelegate = FTimerDelegate::CreateLambda(
+					[WeakPlayer]()
+					{
+						if (WeakPlayer.IsValid())
+						{
+							WeakPlayer->isTeleporting = false;
+						}
+					}
+				);
+
+				GetWorld()->GetTimerManager().SetTimer(
+					TimerHandle,
+					TimerDelegate,
+					1.0f,
+					false
+				);
+
 			}
 		}
 	}
@@ -152,15 +190,14 @@ void APortal::SetBool(AGAM415_ReynoldsCharacter* playerChar)
 
 void APortal::UpdatePortals()
 {
-	// Make sure both portals are linked before updating.
+	// make sure both portals are linked before updating.
 	if (!OtherPortal || !sceneCapture)
 	{
 		return;
 	}
 
-	// Get the player's current camera.
-	APlayerCameraManager* CameraManager =
-		UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
+	// get the player's current camera.
+	APlayerCameraManager* CameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
 
 	if (!CameraManager)
 	{
@@ -171,23 +208,21 @@ void APortal::UpdatePortals()
 	const FTransform CameraTransform =
 		CameraManager->GetTransform();
 
-	// Convert the camera position and rotation into
-	// coordinates relative to this portal.
+	// convert the camera position and rotation into coordinates relative to this portal.
 	const FTransform RelativeTransform =
 		CameraTransform.GetRelativeTransform(GetActorTransform());
 
-	// Rotate 180 degrees to account for looking through
-	// the portal and emerging from the linked portal.
+	// rotate 180 degrees to account for looking through the portal and emerging from the linked portal.
 	const FTransform PortalRotation(
 		FRotator(0.0f, 180.0f, 0.0f)
 	);
 
-	// Transform the camera into the linked portal's space.
+	// transform the camera into the linked portal's space.
 	const FTransform NewCameraTransform =
 		RelativeTransform * PortalRotation *
 		OtherPortal->GetActorTransform();
 
-	// Update the scene capture to show the correct view.
+	// update the scene capture to show the correct view.
 	sceneCapture->SetWorldLocationAndRotation(
 		NewCameraTransform.GetLocation(),
 		NewCameraTransform.GetRotation()

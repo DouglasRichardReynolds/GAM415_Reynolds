@@ -8,6 +8,9 @@
 
 class AGAM415_ReynoldsCharacter;
 
+// allows gun to reference portal class
+class APortal;
+
 UCLASS(Blueprintable, BlueprintType, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class GAM415_REYNOLDS_API UTP_WeaponComponent : public USkeletalMeshComponent
 {
@@ -49,6 +52,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Weapon")
 	void Fire();
 
+	// allows Portal_BP to be assigned in the Unreal Editor
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Portal")
+	TSubclassOf<APortal> PortalClass;
+
 protected:
 	/** Ends gameplay for this component. */
 	UFUNCTION()
@@ -57,4 +64,8 @@ protected:
 private:
 	/** The Character holding this weapon*/
 	AGAM415_ReynoldsCharacter* Character;
+
+	// stores portals in placement order, with the oldest portal at index 0.
+	UPROPERTY()
+	TArray<TObjectPtr<APortal>> ActivePortals;
 };
