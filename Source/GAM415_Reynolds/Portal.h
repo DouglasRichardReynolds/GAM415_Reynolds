@@ -55,4 +55,8 @@ public:
 
 	UFUNCTION()
 		void UpdatePortals();
+
+	// minimum distance between the capture camera and destination portal.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Portal")
+		float CaptureClearance = 50.0f;
 };

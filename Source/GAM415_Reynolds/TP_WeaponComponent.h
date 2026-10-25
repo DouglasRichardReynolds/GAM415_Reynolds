@@ -11,6 +11,9 @@ class AGAM415_ReynoldsCharacter;
 // allows gun to reference portal class
 class APortal;
 
+class UTextureRenderTarget2D;
+class UMaterialInterface;
+
 UCLASS(Blueprintable, BlueprintType, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class GAM415_REYNOLDS_API UTP_WeaponComponent : public USkeletalMeshComponent
 {
@@ -55,6 +58,20 @@ public:
 	// allows Portal_BP to be assigned in the Unreal Editor
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Portal")
 	TSubclassOf<APortal> PortalClass;
+
+	// render targets used by the two active portal cameras.
+	UPROPERTY(EditDefaultsOnly, Category = "Portal")
+	TObjectPtr<UTextureRenderTarget2D> PortalRenderTarget1;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Portal")
+	TObjectPtr<UTextureRenderTarget2D> PortalRenderTarget2;
+
+	// materials used to display each portal's camera feed.
+	UPROPERTY(EditDefaultsOnly, Category = "Portal")
+	TObjectPtr<UMaterialInterface> PortalMaterial1;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Portal")
+	TObjectPtr<UMaterialInterface> PortalMaterial2;
 
 protected:
 	/** Ends gameplay for this component. */

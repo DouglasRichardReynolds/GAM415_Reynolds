@@ -4,6 +4,7 @@
 #include "Portal.h"
 #include "GAM415_ReynoldsCharacter.h"
 #include "Kismet/GameplayStatics.h"
+#include "DrawDebugHelpers.h"
 
 // Sets default values
 APortal::APortal()
@@ -69,20 +70,6 @@ void APortal::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherA
 			// determine which face of the portal was entered.
 			bool bEnteredFront = LocalPlayerPosition.X >= 0.0f;
 
-			// display the detected entrance side for testing.
-			if (GEngine)
-			{
-				GEngine->AddOnScreenDebugMessage(
-					-1,
-					3.0f,
-					FColor::Yellow,
-					bEnteredFront
-					? TEXT("Entered FRONT of portal")
-					: TEXT("Entered BACK of portal")
-				);
-			}
-
-
 			// are we not teleporting
 			if (!playerChar->isTeleporting)
 			{
@@ -96,9 +83,7 @@ void APortal::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherA
 				// choose the exit direction based on the entrance side.
 				// BACK retains the previously working negative direction.
 				// FRONT exits through the positive direction.
-				FVector ExitDirection = bEnteredFront
-					? PortalForward
-					: -PortalForward;
+				FVector ExitDirection = bEnteredFront ? PortalForward : -PortalForward;
 
 				// place the player outside the destination portal.
 				FVector ExitLocation = PortalLocation + (ExitDirection * 200.0f);
@@ -128,23 +113,17 @@ void APortal::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherA
 				// rotate the player and their camera to face horizontally.
 				playerChar->SetActorRotation(ExitRotation);
 
-				if (AController* PlayerController = playerChar->GetController())
-				{
-					PlayerController->SetControlRotation(ExitRotation);
-				}
 
-				// teleport the player and update their orientation.
-				playerChar->SetActorLocation(ExitLocation);
-				playerChar->SetActorRotation(ExitRotation);
+				// move the player to the destination portal.
+				playerChar->SetActorLocationAndRotation(
+					ExitLocation,
+					ExitRotation,
+					false,
+					nullptr,
+					ETeleportType::TeleportPhysics
+				);
 
-				// update the first-person camera direction.
-				if (AController* PlayerController = playerChar->GetController())
-				{
-					PlayerController->SetControlRotation(ExitRotation);
-				}
-
-
-				// update the controller rotation so the camera faces the same direction as the character.
+				// match the camera direction to the player's exit rotation.
 				if (AController* PlayerController = playerChar->GetController())
 				{
 					PlayerController->SetControlRotation(ExitRotation);
@@ -188,15 +167,15 @@ void APortal::SetBool(AGAM415_ReynoldsCharacter* playerChar)
 }
 
 
+
 void APortal::UpdatePortals()
 {
-	// make sure both portals are linked before updating.
-	if (!OtherPortal || !sceneCapture)
+	if (!IsValid(OtherPortal) || !IsValid(sceneCapture))
 	{
 		return;
 	}
 
-	// get the player's current camera.
+	// Get the player's camera.
 	APlayerCameraManager* CameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
 
 	if (!CameraManager)
@@ -204,28 +183,27 @@ void APortal::UpdatePortals()
 		return;
 	}
 
-	// Get the player's camera transform.
-	const FTransform CameraTransform =
-		CameraManager->GetTransform();
+	const FTransform CameraTransform = CameraManager->GetTransform();
 
-	// convert the camera position and rotation into coordinates relative to this portal.
-	const FTransform RelativeTransform =
-		CameraTransform.GetRelativeTransform(GetActorTransform());
+	// calculate the camera position relative to this portal.
+	const FTransform RelativeTransform = CameraTransform.GetRelativeTransform(GetActorTransform());
 
-	// rotate 180 degrees to account for looking through the portal and emerging from the linked portal.
-	const FTransform PortalRotation(
-		FRotator(0.0f, 180.0f, 0.0f)
-	);
+	// rotate the view to face out of the linked portal.
+	const FTransform PortalRotation(FRotator(0.0f, 180.0f, 0.0f));
 
-	// transform the camera into the linked portal's space.
-	const FTransform NewCameraTransform =
-		RelativeTransform * PortalRotation *
-		OtherPortal->GetActorTransform();
+	const FTransform NewCameraTransform = RelativeTransform * PortalRotation * OtherPortal->GetActorTransform();
 
-	// update the scene capture to show the correct view.
+	// keep the capture camera outside the destination surface.
+	const FVector PortalForward = OtherPortal->GetActorForwardVector();
+
+	// position the capture camera in front of the destination portal.
+	const FVector CaptureLocation = OtherPortal->GetActorLocation() + OtherPortal->GetActorForwardVector() * CaptureClearance;
+
 	sceneCapture->SetWorldLocationAndRotation(
-		NewCameraTransform.GetLocation(),
+		CaptureLocation,
 		NewCameraTransform.GetRotation()
 	);
-}
 
+	// render the full scene without clipping geometry.
+	sceneCapture->bEnableClipPlane = false;
+}

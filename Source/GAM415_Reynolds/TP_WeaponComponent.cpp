@@ -71,25 +71,13 @@ void UTP_WeaponComponent::Fire()
         TraceParams
     );
 
-    // display a green line when a surface is hit, or a red line if the trace misses.
-    DrawDebugLine(
-        World,
-        Start,
-        bHit ? HitResult.ImpactPoint : End,
-        bHit ? FColor::Green : FColor::Red,
-        false,
-        2.0f,
-        0,
-        2.0f
-    );
-
     if (bHit && PortalClass != nullptr)
     {
         // use the surface normal to orient the portal so its forward direction points outward from the wall.
         const FVector PortalForward = HitResult.ImpactNormal;
 
         // position the portal slightly away from the wall to reduce the chance of its mesh clipping into the surface.
-        const FVector PortalLocation = HitResult.ImpactPoint + (PortalForward * 10.0f);
+        const FVector PortalLocation = HitResult.ImpactPoint + (PortalForward * 30.0f);
 
         // keep wall portals upright and align floor portals with the player's view.
         FVector PortalUp = FVector::UpVector;
@@ -144,7 +132,7 @@ void UTP_WeaponComponent::Fire()
             // store the new portal in placement order.
             ActivePortals.Add(NewPortal);
 
-            // link the two active portals.
+            // configure both active portals when a pair exists.
             if (ActivePortals.Num() == 2)
             {
                 APortal* FirstPortal = ActivePortals[0];
@@ -152,10 +140,26 @@ void UTP_WeaponComponent::Fire()
 
                 if (IsValid(FirstPortal) && IsValid(SecondPortal))
                 {
+                    // link the portals for teleportation.
                     FirstPortal->OtherPortal = SecondPortal;
                     SecondPortal->OtherPortal = FirstPortal;
+
+                    // give each portal its own camera render target.
+                    FirstPortal->renderTarget = PortalRenderTarget1;
+                    SecondPortal->renderTarget = PortalRenderTarget2;
+
+                    FirstPortal->sceneCapture->TextureTarget = PortalRenderTarget1;
+                    SecondPortal->sceneCapture->TextureTarget = PortalRenderTarget2;
+
+                    // display each portal's own scene capture.
+                    FirstPortal->mat = PortalMaterial1;
+                    SecondPortal->mat = PortalMaterial2;
+
+                    FirstPortal->mesh->SetMaterial(0, PortalMaterial1);
+                    SecondPortal->mesh->SetMaterial(0, PortalMaterial2);
                 }
             }
+
         }
         else
         {
