@@ -12,6 +12,8 @@
 #include "Animation/AnimInstance.h"
 #include "Engine/LocalPlayer.h"
 #include "Engine/World.h"
+#include "DrawDebugHelpers.h"
+#include "Engine/EngineTypes.h"
 
 // Sets default values for this component's properties
 UTP_WeaponComponent::UTP_WeaponComponent()
@@ -20,50 +22,102 @@ UTP_WeaponComponent::UTP_WeaponComponent()
 	MuzzleOffset = FVector(100.0f, 0.0f, 10.0f);
 }
 
-
 void UTP_WeaponComponent::Fire()
 {
-	if (Character == nullptr || Character->GetController() == nullptr)
-	{
-		return;
-	}
+    if (Character == nullptr || Character->GetController() == nullptr)
+    {
+        return;
+    }
 
-	// Try and fire a projectile
-	if (ProjectileClass != nullptr)
-	{
-		UWorld* const World = GetWorld();
-		if (World != nullptr)
-		{
-			APlayerController* PlayerController = Cast<APlayerController>(Character->GetController());
-			const FRotator SpawnRotation = PlayerController->PlayerCameraManager->GetCameraRotation();
-			// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
-			const FVector SpawnLocation = GetOwner()->GetActorLocation() + SpawnRotation.RotateVector(MuzzleOffset);
-	
-			//Set Spawn Collision Handling Override
-			FActorSpawnParameters ActorSpawnParams;
-			ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
-	
-			// Spawn the projectile at the muzzle
-			World->SpawnActor<AGAM415_ReynoldsProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
-		}
-	}
-	
-	// Try and play the sound if specified
-	if (FireSound != nullptr)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, FireSound, Character->GetActorLocation());
-	}
-	
-	// Try and play a firing animation if specified
-	if (FireAnimation != nullptr)
-	{
-		// Get the animation object for the arms mesh
-		UAnimInstance* AnimInstance = Character->GetMesh1P()->GetAnimInstance();
-		if (AnimInstance != nullptr)
-		{
-			AnimInstance->Montage_Play(FireAnimation, 1.f);
-		}
-	}
+    UWorld* World = GetWorld();
+
+    if (World == nullptr)
+    {
+        return;
+    }
+
+    APlayerController* PlayerController =
+        Cast<APlayerController>(Character->GetController());
+
+    if (PlayerController == nullptr ||
+        PlayerController->PlayerCameraManager == nullptr)
+    {
+        return;
+    }
+
+    // Get the player's camera position and direction.
+    FVector Start =
+        PlayerController->PlayerCameraManager->GetCameraLocation();
+
+    FVector Forward =
+        PlayerController->PlayerCameraManager->GetCameraRotation().Vector();
+
+    // Trace 5000 Unreal units forward from the camera.
+    FVector End = Start + (Forward * 5000.0f);
+
+    FHitResult HitResult;
+
+    // Prevent the trace from hitting the player.
+    FCollisionQueryParams TraceParams;
+    TraceParams.AddIgnoredActor(Character);
+
+    // Check for a blocking surface along the trace.
+    bool bHit = World->LineTraceSingleByChannel(
+        HitResult,
+        Start,
+        End,
+        ECC_Visibility,
+        TraceParams
+    );
+
+    // Display a green line when a surface is hit,
+    // or a red line if the trace misses.
+    DrawDebugLine(
+        World,
+        Start,
+        bHit ? HitResult.ImpactPoint : End,
+        bHit ? FColor::Green : FColor::Red,
+        false,
+        2.0f,
+        0,
+        2.0f
+    );
+
+    if (bHit)
+    {
+        // Mark the impact location for testing.
+        DrawDebugSphere(
+            World,
+            HitResult.ImpactPoint,
+            20.0f,
+            12,
+            FColor::Yellow,
+            false,
+            2.0f
+        );
+    }
+
+    // Preserve the existing firing sound.
+    if (FireSound != nullptr)
+    {
+        UGameplayStatics::PlaySoundAtLocation(
+            this,
+            FireSound,
+            Character->GetActorLocation()
+        );
+    }
+
+    // Preserve the first-person firing animation.
+    if (FireAnimation != nullptr)
+    {
+        UAnimInstance* AnimInstance =
+            Character->GetMesh1P()->GetAnimInstance();
+
+        if (AnimInstance != nullptr)
+        {
+            AnimInstance->Montage_Play(FireAnimation, 1.f);
+        }
+    }
 }
 
 bool UTP_WeaponComponent::AttachWeapon(AGAM415_ReynoldsCharacter* TargetCharacter)
